@@ -2,9 +2,9 @@ import { Trigger } from "deno-slack-api/types.ts";
 
 const linkTrigger: Trigger = {
   type: "shortcut",
-  name: "Link to Salesforce",
-  description: "Link this channel to your Salesforce org",
-  workflow: "#/workflows/link_channel_to_salesforce_workflow",
+  name: "Connect Channel",
+  description: "Connects the channel to your Salesforce",
+  workflow: "#/workflows/connect_workflow",
   inputs: {
     interactivity: {
       value: "{{data.interactivity}}",

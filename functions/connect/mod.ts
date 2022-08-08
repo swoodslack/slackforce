@@ -1,11 +1,11 @@
 import type { SlackFunctionHandler } from "deno-slack-sdk/types.ts";
-import type { LinkChannelToSalesforceFunction } from "../manifest.ts";
-import { setSettings } from "../backend/storage.ts";
+import type { ConnectFunction } from "./definition.ts";
+import { setSettings } from "../../backend/storage.ts";
 
-const link_channel_to_salesforce: SlackFunctionHandler<
-  typeof LinkChannelToSalesforceFunction.definition
+const connect_function: SlackFunctionHandler<
+  typeof ConnectFunction.definition
 > = async (
-  { inputs, env, token },
+  { inputs, token },
 ) => {
   await setSettings(token, {
     channel_id: inputs.channel_id,
@@ -19,4 +19,4 @@ const link_channel_to_salesforce: SlackFunctionHandler<
   };
 };
 
-export default link_channel_to_salesforce;
+export default connect_function;

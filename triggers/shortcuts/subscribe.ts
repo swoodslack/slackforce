@@ -2,9 +2,9 @@ import { Trigger } from "deno-slack-api/types.ts";
 
 const linkTrigger: Trigger = {
   type: "shortcut",
-  name: "Subscribe to Updates",
-  description: "Send messages to Slack when changes happen in Salesforce",
-  workflow: "#/workflows/subscribe_to_updates_workflow",
+  name: "Subscribe",
+  description: "Subscribe to record updates",
+  workflow: "#/workflows/subscribe_workflow",
   inputs: {
     interactivity: {
       value: "{{data.interactivity}}",

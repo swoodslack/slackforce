@@ -3,8 +3,8 @@ import { Trigger } from "deno-slack-api/types.ts";
 const linkTrigger: Trigger = {
   type: "shortcut",
   name: "Refresh Salesforce",
-  description: "Refresh Slack's understanding of your Salesforce",
-  workflow: "#/workflows/refresh_object_descriptions_workflow",
+  description: "Refreshes with any changes to Salesforce",
+  workflow: "#/workflows/refresh_workflow",
   inputs: {
     interactivity: {
       value: "{{data.interactivity}}",

@@ -6,7 +6,7 @@ import {
 import { SlackAPI } from "deno-slack-api/mod.ts";
 
 export const SubscribeFunction = DefineFunction({
-  callback_id: "review_approval",
+  callback_id: "subscribe_function",
   title: "Subscribe",
   description: "Subscribe to record updates",
   source_file: "functions/subscribe/mod.ts",
@@ -72,6 +72,21 @@ export const blockActions = ActionsRouter.addHandler(
         ],
       }],
     });
+
+    // Construct the filters from the flat definition
+    // const filters: Filter[] = [];
+    // filters.push({
+    //   field: inputs.field,
+    //   comparison: inputs.comparison,
+    //   value: new String(inputs.value).toString(),
+    // });
+
+    // await setSubscription(token, {
+    //   channel_id: inputs.channel_id,
+    //   sobject: inputs.sobject,
+    //   filters: filters,
+    // });
+    // await createScheduledTrigger(token);
 
     // And now we can mark the function as 'completed' - which is required as
     // we explicitly marked it as incomplete in the main function handler.
