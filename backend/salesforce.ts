@@ -106,13 +106,30 @@ export const getUpdatedObjectRecords = async (
           }
           soql = `${soql.substring(0, soql.length - 2)} FROM ${
             subscriptions[x].sobject
-          } WHERE `;
+          } WHERE (`;
 
           // Add the changed objects to the soql
           for (let y = 0; y < updatedSObjectIds.ids.length; y++) {
             soql += `Id = '${updatedSObjectIds.ids[y]}' OR `;
           }
-          soql = soql.substring(0, soql.length - 4);
+          soql = `${soql.substring(0, soql.length - 4)})`;
+
+          // Add the filter criteria to the soql
+          if (
+            subscriptions[x].filters != null &&
+            subscriptions[x].filters.length > 0
+          ) {
+            soql += " AND (";
+            for (let y = 0; y < subscriptions[x].filters.length; y++) {
+              // TODO Need to make sure the value is formatted correctly for the query - this currently
+              // assumes the value is a number/boolean
+              // TODO this also assumes an AND between criteria
+              soql += `${subscriptions[x].filters[y].field} ${
+                subscriptions[x].filters[y].comparison
+              } ${subscriptions[x].filters[y].value} AND `;
+            }
+            soql = `${soql.substring(0, soql.length - 5)})`;
+          }
           console.log(`Constructed SOQL query: ${soql}`);
 
           // Get the data for the records from Salesforce
@@ -127,9 +144,9 @@ export const getUpdatedObjectRecords = async (
             },
           );
           const updatedRecords = await query_response.json();
-          console.log(
-            `Updated records based on ids: ${JSON.stringify(updatedRecords)}`,
-          );
+          // console.log(
+          //   `Updated records based on ids: ${JSON.stringify(updatedRecords)}`,
+          // );
 
           // Go through each of the records and send a message to channel using the layout
           if (
@@ -141,11 +158,11 @@ export const getUpdatedObjectRecords = async (
               const layoutBlocks: LayoutBlock[] = [];
               // But only render the fields that are in the layout
               for (let z = 0; z < sobjectLayout.fieldItems.length; z++) {
-                console.log(
-                  `Field item being rendered: ${
-                    JSON.stringify(sobjectLayout.fieldItems[z])
-                  }`,
-                );
+                // console.log(
+                //   `Field item being rendered: ${
+                //     JSON.stringify(sobjectLayout.fieldItems[z])
+                //   }`,
+                // );
 
                 // Check to see if we have the data - we don't validate the layout against
                 // Slack supported types (TODO)
@@ -176,9 +193,9 @@ export const getUpdatedObjectRecords = async (
               }
               // Sort in tab order
               layoutBlocks.sort((a, b) => a.order - b.order);
-              console.log(
-                `Message content to be posted: ${JSON.stringify(layoutBlocks)}`,
-              );
+              // console.log(
+              //   `Message content to be posted: ${JSON.stringify(layoutBlocks)}`,
+              // );
               sendMessage(token, channel_id, sobjectDescribe, layoutBlocks);
             }
           }
@@ -243,9 +260,9 @@ export const refreshObjectDescriptions = async (
         },
       );
       const sobjectCompact = await compact_response.json();
-      console.log(
-        `Object compact layouts retrieved: ${JSON.stringify(sobjectCompact)}`,
-      );
+      // console.log(
+      //   `Object compact layouts retrieved: ${JSON.stringify(sobjectCompact)}`,
+      // );
 
       let layout = null;
       if (
@@ -278,14 +295,13 @@ export const refreshObjectDescriptions = async (
           }
         }
       }
-      console.log(`The object layout is: ${JSON.stringify(layout)}`);
+      // console.log(`The object layout is: ${JSON.stringify(layout)}`);
 
       if (
         sobjectDescribe != null &&
         sobjectDescribe.fields != null &&
         sobjectDescribe.fields.length > 0
       ) {
-        console.log("Has fields");
         const sobjectFields: ObjectDescribeField[] = [];
 
         for (let y = 0; y < sobjectDescribe.fields.length; y++) {

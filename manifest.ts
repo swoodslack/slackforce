@@ -5,6 +5,7 @@ import {
   Manifest,
   Schema,
 } from "deno-slack-sdk/mod.ts";
+import { SubscribeFunction } from "./functions/subscribe/definition.ts";
 
 const ObjectDescribeDatastore = DefineDatastore({
   name: "object_describe_datastore",
@@ -162,101 +163,7 @@ LinkChannelToSalesforceWorkflow.addStep(
 );
 // FINISH Link
 
-// START Subscription
-export const SubscribeChannelToSalesforceFunction = DefineFunction({
-  callback_id: "subscribe_channel_to_salesforce_function",
-  title: "Subscribe to Salesforce",
-  description: "Subscribe this channel to changes in your Salesforce org",
-  source_file: "functions/subscribe_channel_to_salesforce.ts",
-  input_parameters: {
-    properties: {
-      channel_id: {
-        type: Schema.slack.types.channel_id,
-      },
-      subdomain: {
-        type: Schema.types.string,
-        description: "The subdomain of the Salesforce org",
-      },
-      session_id: {
-        type: Schema.types.string,
-        description: "Your active session ID",
-      },
-    },
-    required: [
-      "channel_id",
-      "subdomain",
-      "session_id",
-    ],
-  },
-});
-
-export const SubscribeToSalesforceWorkflow = DefineWorkflow({
-  callback_id: "subscribe_channel_to_salesforce_workflow",
-  title: "Subscribe to Salesforce",
-  description: "Subscribe this channel to changes in your Salesforce org",
-  input_parameters: {
-    properties: {
-      interactivity: {
-        type: Schema.slack.types.interactivity,
-      },
-      channel_id: {
-        type: Schema.slack.types.channel_id,
-      },
-    },
-    required: [
-      "interactivity",
-      "channel_id",
-    ],
-  },
-});
-const subscribeForm = SubscribeToSalesforceWorkflow.addStep(
-  Schema.slack.functions.OpenForm,
-  {
-    title: "Subscribe to Salesforce",
-    submit_label: "Subscribe",
-    description: "Subscribe this channel to changes in your Salesforce org",
-    interactivity: SubscribeToSalesforceWorkflow.inputs.interactivity,
-    fields: {
-      required: [
-        "channel_id",
-        "subdomain",
-        "session_id",
-      ],
-      elements: [
-        {
-          name: "channel_id",
-          title: "Link to channel",
-          type: Schema.slack.types.channel_id,
-          default: SubscribeToSalesforceWorkflow.inputs.channel_id,
-        },
-        {
-          name: "subdomain",
-          title: "Salesforce Subdomain",
-          type: Schema.types.string,
-        },
-        {
-          name: "session_id",
-          title: "Salesforce Session Id",
-          type: Schema.types.string,
-        },
-      ],
-    },
-  },
-);
-LinkChannelToSalesforceWorkflow.addStep(LinkChannelToSalesforceFunction, {
-  channel_id: subscribeForm.outputs.fields.channel_id,
-  subdomain: subscribeForm.outputs.fields.subdomain,
-  session_id: subscribeForm.outputs.fields.session_id,
-});
-LinkChannelToSalesforceWorkflow.addStep(
-  Schema.slack.functions.SendEphemeralMessage,
-  {
-    user_id: LinkChannelToSalesforceWorkflow.inputs.interactivity.interactor,
-    channel_id: subscribeForm.outputs.fields.channel_id,
-    message: "All set! Good work linking Slack with Salesforce :)",
-  },
-);
-
+// START Refresh
 export const RefreshObjectDescriptionsFunction = DefineFunction({
   callback_id: "refresh_object_descriptions_function",
   title: "Refresh Salesforce",
@@ -319,7 +226,9 @@ RefreshObjectDescriptionsWorkflow.addStep(
   RefreshObjectDescriptionsFunction,
   { channel_id: refreshForm.outputs.fields.channel_id },
 );
+// END Refresh
 
+// START Subscribe Criteria
 export const SubscribeToUpdatesFunction = DefineFunction({
   callback_id: "subscribe_to_updates_function",
   title: "Subscribe to Updates",
@@ -333,10 +242,22 @@ export const SubscribeToUpdatesFunction = DefineFunction({
       sobject: {
         type: Schema.types.string,
       },
+      field: {
+        type: Schema.types.string,
+      },
+      comparison: {
+        type: Schema.types.string,
+      },
+      value: {
+        type: Schema.types.number,
+      },
     },
     required: [
       "channel_id",
       "sobject",
+      "field",
+      "comparison",
+      "value",
     ],
   },
 });
@@ -360,42 +281,54 @@ export const SubscribeToUpdatesWorkflow = DefineWorkflow({
     ],
   },
 });
-const subscriptionForm = SubscribeToUpdatesWorkflow.addStep(
-  Schema.slack.functions.OpenForm,
-  {
-    title: "Subscribe to Updates",
-    submit_label: "Subscribe",
-    description: "Send messages to Slack when changes happen in Salesforce",
-    interactivity: SubscribeToUpdatesWorkflow.inputs.interactivity,
-    fields: {
-      required: [
-        "channel_id",
-        "sobject",
-      ],
-      elements: [
-        {
-          name: "channel_id",
-          title: "Channel to refresh",
-          type: Schema.slack.types.channel_id,
-          default: SubscribeToUpdatesWorkflow.inputs.channel_id,
-        },
-        {
-          name: "sobject",
-          title: "Changes to object",
-          type: Schema.types.string,
-          default: "Opportunity",
-        },
-      ],
-    },
-  },
-);
 SubscribeToUpdatesWorkflow.addStep(
-  SubscribeToUpdatesFunction,
+  SubscribeFunction,
   {
-    channel_id: subscriptionForm.outputs.fields.channel_id,
-    sobject: subscriptionForm.outputs.fields.sobject,
+    channel_id: SubscribeToUpdatesWorkflow.inputs.channel_id,
   },
 );
+// END Subscribe Criteria
+
+// START Get Updated Object Records
+export const GetUpdatedObjectRecordsFunction = DefineFunction({
+  callback_id: "get_updated_object_records_function",
+  title: "Get Updated Object Records",
+  description: "Get the data based on channel subscriptions",
+  source_file: "functions/get_updated_object_records.ts",
+  input_parameters: {
+    properties: {
+      channel_id: {
+        type: Schema.slack.types.channel_id,
+      },
+    },
+    required: [
+      "channel_id",
+    ],
+  },
+});
+
+export const GetUpdatedObjectRecordsWorkflow = DefineWorkflow({
+  callback_id: "get_updated_object_records_workflow",
+  title: "Get Updated Object Records",
+  description: "Get the data based on channel subscriptions",
+  input_parameters: {
+    properties: {
+      channel_id: {
+        type: Schema.slack.types.channel_id,
+      },
+    },
+    required: [
+      "channel_id",
+    ],
+  },
+});
+GetUpdatedObjectRecordsWorkflow.addStep(
+  GetUpdatedObjectRecordsFunction,
+  {
+    channel_id: GetUpdatedObjectRecordsWorkflow.inputs.channel_id,
+  },
+);
+// END Scheduled Poll
 
 export default Manifest({
   name: "Salesforce Poops",
@@ -405,11 +338,14 @@ export default Manifest({
     LinkChannelToSalesforceWorkflow,
     RefreshObjectDescriptionsWorkflow,
     SubscribeToUpdatesWorkflow,
+    GetUpdatedObjectRecordsWorkflow,
   ],
   functions: [
     LinkChannelToSalesforceFunction,
     RefreshObjectDescriptionsFunction,
     SubscribeToUpdatesFunction,
+    GetUpdatedObjectRecordsFunction,
+    SubscribeFunction,
   ],
   datastores: [
     SubscriptionDatastore,

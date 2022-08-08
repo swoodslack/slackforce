@@ -7,9 +7,6 @@ const link_channel_to_salesforce: SlackFunctionHandler<
 > = async (
   { inputs, env, token },
 ) => {
-  console.log(inputs.subdomain);
-  console.log(inputs.channel_id);
-
   await setSettings(token, {
     channel_id: inputs.channel_id,
     session_id: inputs.session_id,

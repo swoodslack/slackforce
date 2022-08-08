@@ -7,7 +7,6 @@ const refresh_object_descriptions: SlackFunctionHandler<
 > = async (
   { inputs, env, token },
 ) => {
-  console.log(inputs.channel_id);
   await refreshObjectDescriptions(token, inputs.channel_id);
 
   return await {

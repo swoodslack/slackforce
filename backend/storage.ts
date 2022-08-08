@@ -41,9 +41,9 @@ export const getSettings = async (
   token: string,
   channel_id: string,
 ): Promise<Settings> => {
-  console.log(
-    `Executing getSettings(token: ${token}, channel_id: ${channel_id})`,
-  );
+  // console.log(
+  //   `Executing getSettings(token: ${token}, channel_id: ${channel_id})`,
+  // );
   const client = SlackAPI(token, {});
   const get_response = await client.apps.datastore.get({
     datastore: "settings_datastore",
@@ -63,11 +63,11 @@ export const setSettings = async (
   token: string,
   settings: Settings,
 ) => {
-  console.log(
-    `Executing setSettings(token: ${token}, settings: ${
-      JSON.stringify(settings)
-    })`,
-  );
+  // console.log(
+  //   `Executing setSettings(token: ${token}, settings: ${
+  //     JSON.stringify(settings)
+  //   })`,
+  // );
   const client = SlackAPI(token, {});
   const put_response = await client.apps.datastore.put({
     datastore: "settings_datastore",
@@ -89,9 +89,9 @@ export const getSubscriptions = async (
   token: string,
   channel_id: string,
 ): Promise<Subscription[]> => {
-  console.log(
-    `Executing getSubscriptions(token: ${token}, channel_id: ${channel_id})`,
-  );
+  // console.log(
+  //   `Executing getSubscriptions(token: ${token}, channel_id: ${channel_id})`,
+  // );
   const client = SlackAPI(token, {});
   const query_response = await client.apps.datastore.query({
     datastore: "subscriptions_datastore",
@@ -104,7 +104,7 @@ export const getSubscriptions = async (
     console.log(`Error calling apps.datastore.query: ${query_response.error}`);
     throw new Error(query_response.error);
   } else {
-    console.log(`Subscriptions retrieved: ${JSON.stringify(query_response)}`);
+    // console.log(`Subscriptions retrieved: ${JSON.stringify(query_response)}`);
     const subscriptions: Subscription[] = [];
     if (query_response.items != null && query_response.items.length > 0) {
       for (let x = 0; x < query_response.items.length; x++) {
@@ -124,11 +124,11 @@ export const setSubscription = async (
   token: string,
   subscription: Subscription,
 ) => {
-  console.log(
-    `Executing setSubscription(token: ${token}, subscription: ${
-      JSON.stringify(subscription)
-    })`,
-  );
+  // console.log(
+  //   `Executing setSubscription(token: ${token}, subscription: ${
+  //     JSON.stringify(subscription)
+  //   })`,
+  // );
   const client = SlackAPI(token, {});
   const put_response = await client.apps.datastore.put({
     datastore: "subscriptions_datastore",
@@ -150,11 +150,11 @@ export const removeSubscription = async (
   token: string,
   subscription: Subscription,
 ) => {
-  console.log(
-    `Executing removeSubscription(token: ${token}, subscription: ${
-      JSON.stringify(subscription)
-    })`,
-  );
+  // console.log(
+  //   `Executing removeSubscription(token: ${token}, subscription: ${
+  //     JSON.stringify(subscription)
+  //   })`,
+  // );
   if (subscription.id != null) {
     const client = SlackAPI(token, {});
     const delete_response = await client.apps.datastore.delete({
@@ -181,9 +181,9 @@ export const getObjectDescribe = async (
   channel_id: string,
   sobject: string,
 ): Promise<ObjectDescribe> => {
-  console.log(
-    `Executing getObjectDescribe(token: ${token}, channel_id: ${channel_id})`,
-  );
+  // console.log(
+  //   `Executing getObjectDescribe(token: ${token}, channel_id: ${channel_id}, sobject: ${sobject})`,
+  // );
   const client = SlackAPI(token, {});
   const get_response = await client.apps.datastore.get({
     datastore: "object_describe_datastore",
@@ -194,7 +194,7 @@ export const getObjectDescribe = async (
     console.log(`Error calling apps.datastore.get: ${get_response.error}`);
     throw new Error(get_response.error);
   } else {
-    console.log(`ObjectDescribe retrieved: ${JSON.stringify(get_response)}`);
+    // console.log(`ObjectDescribe retrieved: ${JSON.stringify(get_response)}`);
     return <ObjectDescribe> JSON.parse(get_response.item.describe);
   }
 };
@@ -204,11 +204,9 @@ export const setObjectDescribe = async (
   channel_id: string,
   object_describe: ObjectDescribe,
 ) => {
-  console.log(
-    `Executing setObjectDescribe(token: ${token}, channel_id: ${channel_id}, object_describe: ${
-      JSON.stringify(object_describe)
-    })`,
-  );
+  // console.log(
+  //   `Executing setObjectDescribe(token: ${token}, channel_id: ${channel_id}, object_describe: ${JSON.stringify(object_describe)})`,
+  // );
   const client = SlackAPI(token, {});
   const put_response = await client.apps.datastore.put({
     datastore: "object_describe_datastore",

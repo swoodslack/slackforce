@@ -50,3 +50,23 @@ export const sendMessage = async (
     metadata: JSON.parse(event),
   });
 };
+
+export const createScheduledTrigger = async (token: string) => {
+  const client = SlackAPI(token, {});
+  await client.workflows.triggers.create({
+    type: "scheduled",
+    name: "Get Updated Object Records",
+    description: "Get the data based on channel subscriptions",
+    workflow: "#/workflows/get_updated_object_records_workflow",
+    schedule: {
+      start_time: "2022-08-08T14:38:00Z",
+      frequency: {
+        type: "daily",
+      },
+      occurrence_count: 4,
+    },
+    inputs: {
+      channel_id: { value: "{{data.channel_id}}" },
+    },
+  });
+};
