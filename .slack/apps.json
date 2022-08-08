@@ -1,0 +1,10 @@
+{
+  "apps": {
+    "engagd": {
+      "name": "engagd",
+      "app_id": "A03SF3KP5HU",
+      "team_id": "T030KBJBRFV"
+    }
+  },
+  "default": "engagd"
+}
