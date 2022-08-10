@@ -26,11 +26,7 @@ export const SubscribeFunction = DefineFunction({
         type: Schema.types.boolean,
         description: "Subscribed",
       },
-      message_ts: {
-        type: Schema.types.string,
-        description: "Request Message TS",
-      },
     },
-    required: ["subscribed", "message_ts"],
+    required: ["subscribed"],
   },
 });
