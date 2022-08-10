@@ -1,10 +1,10 @@
 import type { SlackFunctionHandler } from "deno-slack-sdk/types.ts";
 import { SlackAPI } from "deno-slack-api/mod.ts";
 import { SubscribeFunction } from "./definition.ts";
-import { BlockActionsRouter } from "deno-slack-sdk/mod.ts";
+// import { BlockActionsRouter } from "deno-slack-sdk/mod.ts";
 import { getObjectsList, SObject } from "../../backend/salesforce.ts";
 
-const ActionsRouter = BlockActionsRouter(SubscribeFunction);
+/* const ActionsRouter = BlockActionsRouter(SubscribeFunction);
 
 export const blockActions = ActionsRouter.addHandler(
   ["subscribe_modal", "channel_id", "sobject"],
@@ -22,11 +22,73 @@ export const blockActions = ActionsRouter.addHandler(
       outputs,
     });
   },
-);
+); */
+
+export const viewSubmission = async (
+  { body, view, inputs, token, env }: any,
+) => {
+  console.log("View submission invoked!");
+  if (view.callback_id === "subscribe_modal") {
+    const { messageTS } = JSON.parse(view.private_metadata);
+
+    const reason = (view.state.values?.reason_block?.reason_input?.value ?? "")
+      .trim();
+
+    const outputs = {
+      reviewer: body.user.id,
+      approved: false,
+      message_ts: messageTS,
+      denial_reason: reason,
+    };
+
+    // Need to provide comments if not approving
+    if (!outputs.denial_reason || outputs.denial_reason == "lgtm") {
+      return {
+        response_action: "errors",
+        errors: {
+          "reason_block":
+            "Please provide an adequate reason for denying the request",
+        },
+      };
+    }
+
+    const client = SlackAPI(token, {
+      slackApiUrl: env.SLACK_API_URL,
+    });
+
+    /*     const msgResp = await client.chat.postMessage({
+      channel: inputs.approval_channel_id,
+      thread_ts: messageTS,
+      text: renderApprovalOutcomeStatusMessage(outputs),
+    });
+    if (!msgResp.ok) {
+      console.log("error sending msg", msgResp);
+    }
+
+    // Update the original approval request message
+    const updateMsgResp = await client.chat.update({
+      channel: inputs.approval_channel_id,
+      ts: messageTS,
+      blocks: renderApprovalCompletedMessage(inputs, outputs),
+    });
+    if (!updateMsgResp.ok) {
+      console.log("error updating msg", updateMsgResp);
+    }
+ */
+    const completeResp = await client.functions.completeSuccess({
+      function_execution_id: body.function_data.execution_id,
+      outputs,
+    });
+    if (!completeResp.ok) {
+      console.log("error completing fn", completeResp);
+    }
+  }
+};
 
 const subscribe_modal: SlackFunctionHandler<
   typeof SubscribeFunction.definition
 > = async ({ inputs, token }) => {
+  console.log(`Executing SubscribeFunction`);
   const client = SlackAPI(token);
 
   // Add the dynamic lookups - dialog is now working
@@ -53,11 +115,11 @@ const subscribe_modal: SlackFunctionHandler<
     trigger_id: inputs.interactivity.interactivity_pointer,
     view: {
       type: "modal",
+      callback_id: "subscribe_modal",
       title: {
         type: "plain_text",
         text: "Subscribe to Salesforce",
       },
-      callback_id: "subscribe_modal",
       blocks: [
         {
           "type": "section",
