@@ -77,7 +77,6 @@ const subscribe_modal: SlackFunctionHandler<
                 "emoji": true,
               },
               "action_id": "channel_id",
-              "initial_channels": [`${inputs.channel_id}`],
             },
           ],
         },
