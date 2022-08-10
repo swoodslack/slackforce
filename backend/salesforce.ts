@@ -20,6 +20,57 @@ export interface LayoutBlock {
   order: number;
 }
 
+export interface SObject {
+  label: string;
+  name: string;
+}
+
+export const getObjectsList = async (
+  token: string,
+  channel_id: string,
+): Promise<SObject[]> => {
+  // console.log(
+  //   `Executing getObjectsList(token: ${token}, channel_id: ${channel_id})`,
+  // );
+  const sobjects: SObject[] = [];
+  const settings: Settings = await getSettings(token, channel_id);
+  const sobject_response = await fetch(
+    `https://${settings.subdomain}.my.salesforce.com/services/data/v55.0/sobjects/`,
+    {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${settings.session_id}`,
+        "Content-Type": "application/json",
+      },
+    },
+  );
+  const availableSObjects = await sobject_response.json();
+  // console.log(
+  //   `Objects available to the user: ${JSON.stringify(availableSObjects)}`,
+  // );
+
+  if (
+    availableSObjects != null && availableSObjects.sobjects != null &&
+    availableSObjects.sobjects.length > 0
+  ) {
+    for (let x = 0; x < availableSObjects.sobjects.length; x++) {
+      // Only add single word and standard objects to keep the list short
+      if (
+        (availableSObjects.sobjects[x].name.match(/[A-Z]/g) || []).length < 2 &&
+        availableSObjects.sobjects[x].name.indexOf("__c") < 0
+      ) {
+        sobjects.push({
+          name: availableSObjects.sobjects[x].name,
+          label: availableSObjects.sobjects[x].label,
+        });
+      }
+    }
+  }
+
+  //console.log(`Returning sobjects: ${JSON.stringify(sobjects)}`);
+  return sobjects;
+};
+
 export const getUpdatedObjectRecords = async (
   token: string,
   channel_id: string,

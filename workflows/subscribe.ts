@@ -24,6 +24,7 @@ export const SubscribeWorkflow = DefineWorkflow({
 SubscribeWorkflow.addStep(
   SubscribeFunction,
   {
+    interactivity: SubscribeWorkflow.inputs.interactivity,
     channel_id: SubscribeWorkflow.inputs.channel_id,
   },
 );

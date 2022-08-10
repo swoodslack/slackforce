@@ -12,7 +12,7 @@ import { PollFunction } from "./functions/poll/definition.ts";
 import { PollWorkflow } from "./workflows/poll.ts";
 
 export default Manifest({
-  name: "Salesforce Poops",
+  name: "Slackforce",
   description: "Send messages to Slack based on changes in Salesforce.",
   icon: "assets/icon.png",
   workflows: [
