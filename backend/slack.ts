@@ -53,13 +53,19 @@ export const sendMessage = async (
 
 export const createScheduledTrigger = async (token: string) => {
   const client = SlackAPI(token, {});
-  await client.workflows.triggers.create({
+
+  // Schedule for a minute in the future
+  const dateNow = new Date();
+  const dateSoon = new Date(dateNow.getTime() + 60000);
+
+  const create_response = await client.workflows.triggers.create({
     type: "scheduled",
     name: "Get Updated Object Records",
     description: "Get the data based on channel subscriptions",
-    workflow: "#/workflows/get_updated_object_records_workflow",
+    workflow: "#/workflows/poll",
     schedule: {
-      start_time: "2022-08-08T14:38:00Z",
+      start_time: dateSoon.getUTCDate().toString(),
+      timezone: "UTC",
       frequency: {
         type: "daily",
       },
@@ -69,4 +75,5 @@ export const createScheduledTrigger = async (token: string) => {
       channel_id: { value: "{{data.channel_id}}" },
     },
   });
+  console.log(`Scheduled trigger created: ${JSON.stringify(create_response)}`);
 };

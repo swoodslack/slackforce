@@ -4,6 +4,11 @@
       "name": "engagd",
       "app_id": "A03SF3KP5HU",
       "team_id": "T030KBJBRFV"
+    },
+    "slack-pde": {
+      "name": "slack-pde",
+      "app_id": "A03T96TFLH3",
+      "team_id": "T5J4Q04QG"
     }
   },
   "default": "engagd"
