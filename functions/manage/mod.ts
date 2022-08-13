@@ -4,9 +4,9 @@ import { ManageFunction } from "./definition.ts";
 import {
   ObjectDescribe,
   Settings,
-  Storage,
   Subscription,
-} from "../../backend/storage.ts";
+} from "../../backend/interfaces.ts";
+import { Storage } from "../../backend/storage.ts";
 import { Slack } from "../../backend/slack.ts";
 
 export const viewSubmission = async (

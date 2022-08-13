@@ -1,166 +1,15 @@
 import {
+  LayoutBlock,
   ObjectDescribe,
   ObjectDescribeField,
   ObjectDescribeFieldOption,
   Settings,
-  Storage,
+  SObject,
   Subscription,
-} from "./storage.ts";
+} from "./interfaces.ts";
+import { Storage } from "./storage.ts";
 import { Slack } from "./slack.ts";
 import { Schema } from "deno-slack-sdk/mod.ts";
-
-export interface LayoutBlock {
-  label: string;
-  value: string;
-  name: string;
-  order: number;
-}
-
-export interface SObject {
-  label: string;
-  name: string;
-}
-
-const getSalesforceCompactLayoutAsString = async (
-  settings: Settings,
-  sobject: string,
-): Promise<string> => {
-  // Get the description of the compact layout
-  const compact_response = await fetch(
-    `https://${settings.subdomain}.my.salesforce.com/services/data/v55.0/sobjects/${sobject}/describe/compactLayouts`,
-    {
-      method: "GET",
-      headers: {
-        "Authorization": `Bearer ${settings.session_id}`,
-        "Content-Type": "application/json",
-      },
-    },
-  );
-  const sobjectCompact = await compact_response.json();
-  // console.log(
-  //   `Object compact layouts retrieved: ${JSON.stringify(sobjectCompact)}`,
-  // );
-
-  let layout = null;
-  if (
-    sobjectCompact != null &&
-    sobjectCompact.compactLayouts != null &&
-    sobjectCompact.compactLayouts.length > 0
-  ) {
-    // First, look for a layout attributed to this app (must contain the word "poops")
-    for (let y = 0; y < sobjectCompact.compactLayouts.length; y++) {
-      if (
-        sobjectCompact.compactLayouts[y].name.toLowerCase().indexOf(
-          "poops",
-        ) > 0
-      ) {
-        layout = sobjectCompact.compactLayouts[y];
-        break;
-      }
-    }
-
-    // If we didn't find a layout, grab the default one
-    if (layout == null) {
-      for (let y = 0; y < sobjectCompact.compactLayouts.length; y++) {
-        if (
-          sobjectCompact.compactLayouts[y].id ===
-            sobjectCompact.defaultCompactLayoutId
-        ) {
-          layout = sobjectCompact.compactLayouts[y];
-          break;
-        }
-      }
-    }
-  }
-  // console.log(`The object layout is: ${JSON.stringify(layout)}`);
-
-  return JSON.stringify(layout);
-};
-
-const convertSalesforceObjectDescribeToFields = (
-  sobjectDescribe: any,
-): ObjectDescribeField[] => {
-  const sobjectFields: ObjectDescribeField[] = [];
-  if (
-    sobjectDescribe == null ||
-    sobjectDescribe.fields == null &&
-      sobjectDescribe.fields.length == 0
-  ) {
-    console.log(`ObjectDescribe missing or has not fields.`);
-    throw new Error(
-      "The object does not have an fields to show in the message",
-    );
-  }
-
-  for (let y = 0; y < sobjectDescribe.fields.length; y++) {
-    // Translate Salesforce types to Slack types
-    let include = false;
-    let type = "";
-    if (
-      sobjectDescribe.fields[y].type.toLowerCase() === "string" ||
-      sobjectDescribe.fields[y].type.toLowerCase() === "email" ||
-      sobjectDescribe.fields[y].type.toLowerCase() === "picklist" ||
-      sobjectDescribe.fields[y].type.toLowerCase() === "phone" ||
-      sobjectDescribe.fields[y].type.toLowerCase() === "url" ||
-      sobjectDescribe.fields[y].type.toLowerCase() === "combobox"
-    ) {
-      type = Schema.types.string;
-      include = true;
-    } else if (
-      sobjectDescribe.fields[y].type.toLowerCase() === "boolean"
-    ) {
-      type = Schema.types.boolean;
-      include = true;
-    } else if (
-      sobjectDescribe.fields[y].type.toLowerCase() === "int" ||
-      sobjectDescribe.fields[y].type.toLowerCase() === "double" ||
-      sobjectDescribe.fields[y].type.toLowerCase() === "currency" ||
-      sobjectDescribe.fields[y].type.toLowerCase() === "percent"
-    ) {
-      type = Schema.types.number;
-      include = true;
-    } else if (
-      sobjectDescribe.fields[y].type.toLowerCase() === "date" ||
-      sobjectDescribe.fields[y].type.toLowerCase() === "datetime"
-    ) {
-      type = Schema.slack.types.timestamp;
-      include = true;
-    }
-
-    if (include === true) {
-      const options: ObjectDescribeFieldOption[] = [];
-
-      if (
-        sobjectDescribe.fields[y].picklistValues != null &&
-        sobjectDescribe.fields[y].picklistValues.length > 0
-      ) {
-        for (
-          let z = 0;
-          z < sobjectDescribe.fields[y].picklistValues.length;
-          z++
-        ) {
-          options.push({
-            value: sobjectDescribe.fields[y].picklistValues[z].value,
-          });
-        }
-        sobjectFields.push({
-          type: type,
-          name: sobjectDescribe.fields[y].name,
-          label: sobjectDescribe.fields[y].label,
-          options: options,
-        });
-      } else {
-        sobjectFields.push({
-          type: type,
-          name: sobjectDescribe.fields[y].name,
-          label: sobjectDescribe.fields[y].label,
-        });
-      }
-    }
-  }
-
-  return sobjectFields;
-};
 
 export class Salesforce {
   static getObjectDescribe = async (
@@ -183,11 +32,146 @@ export class Salesforce {
     //   `Object descriptions retrieved: ${JSON.stringify(sobjectDescribe)}`,
     // );
 
+    const sobjectFields: ObjectDescribeField[] = [];
+    if (
+      sobjectDescribe == null ||
+      sobjectDescribe.fields == null &&
+        sobjectDescribe.fields.length == 0
+    ) {
+      console.log(`ObjectDescribe missing or has not fields.`);
+      throw new Error(
+        "The object does not have an fields to show in the message",
+      );
+    }
+
+    for (let y = 0; y < sobjectDescribe.fields.length; y++) {
+      // Translate Salesforce types to Slack types
+      let include = false;
+      let type = "";
+      if (
+        sobjectDescribe.fields[y].type.toLowerCase() === "string" ||
+        sobjectDescribe.fields[y].type.toLowerCase() === "email" ||
+        sobjectDescribe.fields[y].type.toLowerCase() === "picklist" ||
+        sobjectDescribe.fields[y].type.toLowerCase() === "phone" ||
+        sobjectDescribe.fields[y].type.toLowerCase() === "url" ||
+        sobjectDescribe.fields[y].type.toLowerCase() === "combobox"
+      ) {
+        type = Schema.types.string;
+        include = true;
+      } else if (
+        sobjectDescribe.fields[y].type.toLowerCase() === "boolean"
+      ) {
+        type = Schema.types.boolean;
+        include = true;
+      } else if (
+        sobjectDescribe.fields[y].type.toLowerCase() === "int" ||
+        sobjectDescribe.fields[y].type.toLowerCase() === "double" ||
+        sobjectDescribe.fields[y].type.toLowerCase() === "currency" ||
+        sobjectDescribe.fields[y].type.toLowerCase() === "percent"
+      ) {
+        type = Schema.types.number;
+        include = true;
+      } else if (
+        sobjectDescribe.fields[y].type.toLowerCase() === "date" ||
+        sobjectDescribe.fields[y].type.toLowerCase() === "datetime"
+      ) {
+        type = Schema.slack.types.timestamp;
+        include = true;
+      }
+
+      if (include === true) {
+        const options: ObjectDescribeFieldOption[] = [];
+
+        if (
+          sobjectDescribe.fields[y].picklistValues != null &&
+          sobjectDescribe.fields[y].picklistValues.length > 0
+        ) {
+          for (
+            let z = 0;
+            z < sobjectDescribe.fields[y].picklistValues.length;
+            z++
+          ) {
+            options.push({
+              value: sobjectDescribe.fields[y].picklistValues[z].value,
+            });
+          }
+          sobjectFields.push({
+            type: type,
+            name: sobjectDescribe.fields[y].name,
+            label: sobjectDescribe.fields[y].label,
+            options: options,
+          });
+        } else {
+          sobjectFields.push({
+            type: type,
+            name: sobjectDescribe.fields[y].name,
+            label: sobjectDescribe.fields[y].label,
+          });
+        }
+      }
+    }
+
     return {
       name: sobject,
       label: sobjectDescribe.label,
-      fields: convertSalesforceObjectDescribeToFields(sobjectDescribe),
+      fields: sobjectFields,
     };
+  };
+
+  static getSalesforceCompactLayoutJSON = async (
+    settings: Settings,
+    sobject: string,
+  ): Promise<string> => {
+    // Get the description of the compact layout
+    const compact_response = await fetch(
+      `https://${settings.subdomain}.my.salesforce.com/services/data/v55.0/sobjects/${sobject}/describe/compactLayouts`,
+      {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${settings.session_id}`,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+    const sobjectCompact = await compact_response.json();
+    // console.log(
+    //   `Object compact layouts retrieved: ${JSON.stringify(sobjectCompact)}`,
+    // );
+
+    let layout = null;
+    if (
+      sobjectCompact != null &&
+      sobjectCompact.compactLayouts != null &&
+      sobjectCompact.compactLayouts.length > 0
+    ) {
+      // First, look for a layout attributed to this app (must contain the word "poops")
+      for (let y = 0; y < sobjectCompact.compactLayouts.length; y++) {
+        if (
+          sobjectCompact.compactLayouts[y].name.toLowerCase().indexOf(
+            "poops",
+          ) > 0
+        ) {
+          layout = sobjectCompact.compactLayouts[y];
+          break;
+        }
+      }
+
+      // If we didn't find a layout, grab the default one
+      if (layout == null) {
+        for (let y = 0; y < sobjectCompact.compactLayouts.length; y++) {
+          if (
+            sobjectCompact.compactLayouts[y].id ===
+              sobjectCompact.defaultCompactLayoutId
+          ) {
+            layout = sobjectCompact.compactLayouts[y];
+            break;
+          }
+        }
+      }
+    }
+    // console.log(`The object layout is: ${JSON.stringify(layout)}`);
+
+    return JSON.stringify(layout);
   };
 
   static getObjectsList = async (
@@ -460,10 +444,11 @@ export class Salesforce {
             subscriptions[x].sobject,
           );
         // Grab the layout so we have it for rendering the message
-        sobjectDescribe.layout = await getSalesforceCompactLayoutAsString(
-          settings,
-          subscriptions[x].sobject,
-        );
+        sobjectDescribe.layout = await Salesforce
+          .getSalesforceCompactLayoutJSON(
+            settings,
+            subscriptions[x].sobject,
+          );
 
         // Store the object subscribe for this channel
         await Storage.setObjectDescribe(token, channel_id, sobjectDescribe);

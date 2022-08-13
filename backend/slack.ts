@@ -1,6 +1,5 @@
 import { SlackAPI } from "deno-slack-api/mod.ts";
-import { LayoutBlock } from "./salesforce.ts";
-import { ObjectDescribe } from "./storage.ts";
+import { LayoutBlock, ObjectDescribe } from "./interfaces.ts";
 
 export class Slack {
   static sendMessage = async (

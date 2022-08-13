@@ -1,8 +1,9 @@
 import type { SlackFunctionHandler } from "deno-slack-sdk/types.ts";
 import { SlackAPI } from "deno-slack-api/mod.ts";
 import { SubscribeFunction } from "./definition.ts";
-import { Salesforce, SObject } from "../../backend/salesforce.ts";
-import { ObjectDescribe, Settings, Storage } from "../../backend/storage.ts";
+import { ObjectDescribe, Settings, SObject } from "../../backend/interfaces.ts";
+import { Salesforce } from "../../backend/salesforce.ts";
+import { Storage } from "../../backend/storage.ts";
 import { Slack } from "../../backend/slack.ts";
 
 const openObjectSelectionForm = async (
@@ -313,7 +314,7 @@ export const viewSubmission = async (
   }
 };
 
-const subscribe_modal: SlackFunctionHandler<
+const subscribe_function: SlackFunctionHandler<
   typeof SubscribeFunction.definition
 > = async ({ inputs, token }) => {
   console.log(`Executing SubscribeFunction`);
@@ -328,4 +329,4 @@ const subscribe_modal: SlackFunctionHandler<
   };
 };
 
-export default subscribe_modal;
+export default subscribe_function;
