@@ -1,13 +1,13 @@
 import type { SlackFunctionHandler } from "deno-slack-sdk/types.ts";
 import type { ConnectFunction } from "./definition.ts";
-import { setSettings } from "../../backend/storage.ts";
+import { Storage } from "../../backend/storage.ts";
 
 const connect_function: SlackFunctionHandler<
   typeof ConnectFunction.definition
 > = async (
   { inputs, token },
 ) => {
-  await setSettings(token, {
+  await Storage.setSettings(token, {
     channel_id: inputs.channel_id,
     session_id: inputs.session_id,
     subdomain: inputs.subdomain,

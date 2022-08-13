@@ -13,6 +13,9 @@ export const SettingsDatastore = DefineDatastore({
     session_id: {
       type: Schema.types.string,
     },
+    trigger_id: {
+      type: Schema.types.string,
+    },
     last_polled: {
       type: Schema.types.number,
     },

@@ -10,6 +10,8 @@ import { SubscribeFunction } from "./functions/subscribe/definition.ts";
 import { SubscribeWorkflow } from "./workflows/subscribe.ts";
 import { PollFunction } from "./functions/poll/definition.ts";
 import { PollWorkflow } from "./workflows/poll.ts";
+import { ManageFunction } from "./functions/manage/definition.ts";
+import { ManageWorkflow } from "./workflows/manage.ts";
 
 export default Manifest({
   name: "Slackforce",
@@ -20,12 +22,14 @@ export default Manifest({
     RefreshWorkflow,
     SubscribeWorkflow,
     PollWorkflow,
+    ManageWorkflow,
   ],
   functions: [
     ConnectFunction,
     RefreshFunction,
     SubscribeFunction,
     PollFunction,
+    ManageFunction,
   ],
   datastores: [
     SubscriptionsDatastore,

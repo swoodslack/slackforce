@@ -10,6 +10,9 @@ export const ObjectDescribeDatastore = DefineDatastore({
     channel_id: {
       type: Schema.types.string,
     },
+    trigger_id: {
+      type: Schema.types.string,
+    },
     sobject: {
       type: Schema.types.string,
     },
