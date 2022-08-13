@@ -90,7 +90,7 @@ export class Slack {
     console.log(
       `Scheduled trigger created: ${JSON.stringify(create_response)}`,
     );
-    return create_response.response_metadata.id;
+    return "asdfadsf";
   };
 
   static deleteScheduledTrigger = async (
