@@ -5,6 +5,7 @@ import { ObjectDescribe, Settings, SObject } from "../../backend/interfaces.ts";
 import { Salesforce } from "../../backend/salesforce.ts";
 import { Storage } from "../../backend/storage.ts";
 import { Slack } from "../../backend/slack.ts";
+import { BlockActionsRouter } from "deno-slack-sdk/mod.ts";
 
 const openObjectSelectionForm = async (
   token: string,
@@ -49,7 +50,8 @@ const openObjectSelectionForm = async (
           "type": "section",
           "text": {
             "type": "mrkdwn",
-            "text": "Let's get you subscribed to some salesforce records!",
+            "text":
+              "*Step 1*: First select the Salesforce object you want to subscribe to and click 'Apply'.",
           },
         },
         {
@@ -68,11 +70,24 @@ const openObjectSelectionForm = async (
             },
           ],
         },
+        {
+          "type": "section",
+          "text": {
+            "type": "mrkdwn",
+            "text": "Click to continue",
+          },
+          "accessory": {
+            "type": "button",
+            "text": {
+              "type": "plain_text",
+              "text": "Apply",
+              "emoji": true,
+            },
+            "value": "connect_object",
+            "action_id": "connect_object",
+          },
+        },
       ],
-      submit: {
-        type: "plain_text",
-        text: "Next",
-      },
     },
   });
 
@@ -84,7 +99,8 @@ const openObjectSelectionForm = async (
 
 const pushFilterCreationForm = async (
   token: string,
-  interactivity_pointer: string,
+  view_id: string,
+  view_hash: string,
   channel_id: string,
   sobject: string,
 ) => {
@@ -113,14 +129,21 @@ const pushFilterCreationForm = async (
         },
         "value": objectDescribe.fields[x].name,
       });
+      // Slack only supports 99 fields
+      if (x == 99) {
+        break;
+      }
     }
   }
-  // console.log(`Options block kit: ${JSON.stringify(sobjectOptions)}`);
+  // console.log(`Options block kit: ${JSON.stringify(fieldOptions)}`);
 
   const client = SlackAPI(token);
-  const open_response = await client.views.push({
-    channel: channel_id,
-    trigger_id: interactivity_pointer,
+  const open_response = await client.views.update({
+    // Pass the view_id
+    view_id: view_id,
+    // Pass the current hash to avoid race conditions
+    hash: view_hash,
+    // View payload with updated blocks
     view: {
       type: "modal",
       callback_id: "filter_modal",
@@ -133,12 +156,13 @@ const pushFilterCreationForm = async (
           "type": "section",
           "text": {
             "type": "mrkdwn",
-            "text": `You can also add a filter for ${!sobject} records`,
+            "text":
+              `*Step 2*: Filter updates to '${objectDescribe.label}' and click on Subscribe.`,
           },
         },
         {
           "type": "actions",
-          "block_id": "modal_action_filter",
+          "block_id": "modal_action_field",
           "elements": [
             {
               "type": "static_select",
@@ -150,11 +174,17 @@ const pushFilterCreationForm = async (
               "options": fieldOptions,
               "action_id": "field",
             },
+          ],
+        },
+        {
+          "type": "actions",
+          "block_id": "modal_action_filter",
+          "elements": [
             {
               "type": "static_select",
               "placeholder": {
                 "type": "plain_text",
-                "text": "Field",
+                "text": "Comparison",
                 "emoji": true,
               },
               "options": [
@@ -201,16 +231,19 @@ const pushFilterCreationForm = async (
               ],
               "action_id": "sobject",
             },
-            {
-              "type": "input",
-              "placeholder": {
-                "type": "plain_text",
-                "text": "Value",
-                "emoji": true,
-              },
-              "action_id": "field",
-            },
           ],
+        },
+        {
+          "type": "input",
+          "element": {
+            "type": "plain_text_input",
+            "action_id": "value",
+          },
+          "label": {
+            "type": "plain_text",
+            "text": "Value",
+            "emoji": true,
+          },
         },
       ],
       submit: {
@@ -226,6 +259,7 @@ const pushFilterCreationForm = async (
   }
 };
 
+// Used until the SDK has proper support for modals
 export const viewSubmission = async (
   { body, view, inputs, token }: any,
 ) => {
@@ -237,14 +271,18 @@ export const viewSubmission = async (
 
     await pushFilterCreationForm(
       token,
-      inputs.interactivity.interactivity_pointer,
+      body.view.id,
+      body.view.hash,
       inputs.channel_id,
-      sobject,
+      inputs.sobject,
     );
   } else if (view.callback_id === "filter_modal") {
     const client = SlackAPI(token);
 
-    const sobject = view["state"]["values"]["modal_action_sobject"]["field"][
+    console.log(
+      `Capturing values from view: ${JSON.stringify(view["state"]["values"])}`,
+    );
+    /*     const sobject = view["state"]["values"]["modal_action_sobject"]["field"][
       "selected_option"
     ]["value"];
     console.log(`Stored sobject from previous view: ${sobject}`);
@@ -259,7 +297,7 @@ export const viewSubmission = async (
     const value =
       view["state"]["values"]["modal_action_sobject"]["comparison"]["value"];
     console.log(`Filter submitted is: ${field} ${comparison} ${value}`);
-
+ */
     // Get the settings to determine if we have a trigger
     const settings: Settings = await Storage.getSettings(
       token,
@@ -269,12 +307,12 @@ export const viewSubmission = async (
     // Save this subscription into the data store so it will be picked up in the next poll
     await Storage.setSubscription(token, {
       channel_id: inputs.channel_id,
-      sobject: sobject,
+      sobject: "Opportunity",
       filters: [
         {
-          field: field,
-          comparison: comparison,
-          value: value,
+          field: "Amount",
+          comparison: ">",
+          value: "1000000",
         },
       ],
     });
@@ -300,6 +338,7 @@ export const viewSubmission = async (
     };
 
     // Tell the platform the function has completed successfully
+    console.log("Function execution complete");
     const complete_response = await client.functions.completeSuccess({
       function_execution_id: body.function_data.execution_id,
       outputs,
@@ -330,3 +369,45 @@ const subscribe_function: SlackFunctionHandler<
 };
 
 export default subscribe_function;
+
+// We must pass in the function definition for our main function (we imported this in the earlier example code)
+// when creating a new `BlockActionsRouter`
+const ActionsRouter = BlockActionsRouter(SubscribeFunction);
+// Now can use the router's addHandler method to register different handlers based on action properties like
+// action_id or block_id
+export const blockActions = ActionsRouter.addHandler(
+  ["connect_object"], // The first argument to addHandler can accept an array of action_id strings, among many other formats!
+  // Check the API reference at the end of this document for the full list of supported options
+  async ({ action, body, token }) => { // The second argument is the handler function itself
+    console.log("Incoming action handler invocation", action);
+    const sobject = body
+      .view["state"]["values"]["modal_action_sobject"]["sobject"][
+        "selected_option"
+      ]["value"];
+    console.log(
+      `The sobject from the view is: ${
+        JSON.stringify(
+          body
+            .view["state"]["values"]["modal_action_sobject"]["sobject"][
+              "selected_option"
+            ]["value"],
+        )
+      }`,
+    );
+
+    await pushFilterCreationForm(
+      token,
+      body.view.id,
+      body.view.hash,
+      body.function_data.inputs.channel_id,
+      sobject,
+    );
+
+    // And now we can mark the function as 'completed' - which is required as
+    // we explicitly marked it as incomplete in the main function handler.
+    /*     await client.functions.completeSuccess({
+      function_execution_id: body.function_data.execution_id,
+      outputs,
+    }); */
+  },
+);

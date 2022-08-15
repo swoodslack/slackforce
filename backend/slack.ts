@@ -59,21 +59,35 @@ export class Slack {
     const client = SlackAPI(token, {});
 
     // TODO: Schedule for a minute in the future just for testing
-    const dateNow = new Date();
-    const dateSoon = new Date(dateNow.getTime() + 60000);
+    const dateSoon = new Date();
+    dateSoon.setMinutes(dateSoon.getMinutes() + 1);
 
+    console.log(`Trigger definition is: ${
+      JSON.stringify({
+        type: "scheduled",
+        name: "Get Updated Object Records",
+        description: "Get the data based on channel subscriptions",
+        workflow: "#/workflows/poll_workflow",
+        schedule: {
+          start_time: dateSoon.toISOString(),
+          timezone: "UTC",
+          frequency: {
+            type: "daily",
+          },
+          occurrence_count: 4,
+        },
+        inputs: {
+          channel_id: { value: channel_id },
+        },
+      })
+    }`);
     const create_response = await client.workflows.triggers.create({
       type: "scheduled",
       name: "Get Updated Object Records",
       description: "Get the data based on channel subscriptions",
       workflow: "#/workflows/poll_workflow",
       schedule: {
-        start_time: dateSoon.getUTCDate().toString(),
-        timezone: "UTC",
-        frequency: {
-          type: "daily",
-        },
-        occurrence_count: 4,
+        start_time: dateSoon.toISOString(),
       },
       inputs: {
         channel_id: { value: channel_id },
