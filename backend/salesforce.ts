@@ -59,6 +59,11 @@ export class Salesforce {
         type = Schema.types.string;
         include = true;
       } else if (
+        sobjectDescribe.fields[y].type.toLowerCase() === "id"
+      ) {
+        type = Schema.types.object;
+        include = true;
+      } else if (
         sobjectDescribe.fields[y].type.toLowerCase() === "boolean"
       ) {
         type = Schema.types.boolean;
@@ -235,15 +240,20 @@ export class Salesforce {
     );
 
     // Start with the last polled date and end with now
-    const lastPolled = new Date().getTime();
+    const lastPolled = new Date(settings.last_polled);
+    const polled = new Date();
+
     // const startDate = encodeURIComponent(
     //   new Date(Number(settings.last_polled)).toISOString(),
     // );
     // const endDate = encodeURIComponent(
     //   new Date().toISOString(),
     // );
-    const startDate = "2022-08-05T00%3A00%3A00%2B00%3A00";
-    const endDate = "2022-08-08T00%3A00%3A00%2B00%3A00";
+    // 2022-08-05T00:00:00+00:00
+    const startDate =
+      `${lastPolled.getUTCFullYear()}-${lastPolled.getUTCMonth()}-${lastPolled.getUTCDay()}T${lastPolled.getUTCHours()}%3A${lastPolled.getUTCMinutes()}%3A${lastPolled.getUTCSeconds()}%2B00%3A00`;
+    const endDate =
+      `${polled.getUTCFullYear()}-${polled.getUTCMonth()}-${polled.getUTCDay()}T${polled.getUTCHours()}%3A${polled.getUTCMinutes()}%3A${polled.getUTCSeconds()}%2B00%3A00`;
 
     if (settings != null && subscriptions != null) {
       for (let x = 0; x < subscriptions.length; x++) {
@@ -306,7 +316,12 @@ export class Salesforce {
             sobjectDescribe.fields.length > 0
           ) {
             for (let y = 0; y < sobjectDescribe.fields.length; y++) {
-              soql += `${sobjectDescribe.fields[y].name}, `;
+              if (sobjectDescribe.fields[y].type === Schema.types.object) {
+                // This is an object, so we drill a little deeper to get the name
+                soql += `${sobjectDescribe.fields[y].name}.Name`;
+              } else {
+                soql += `${sobjectDescribe.fields[y].name}, `;
+              }
             }
             soql = `${soql.substring(0, soql.length - 2)} FROM ${
               subscriptions[x].sobject
@@ -325,12 +340,49 @@ export class Salesforce {
             ) {
               soql += " AND (";
               for (let y = 0; y < subscriptions[x].filters.length; y++) {
-                // TODO Need to make sure the value is formatted correctly for the query - this currently
-                // assumes the value is a number/boolean
+                // Find the field in the object describe
+                let fieldDescribe: ObjectDescribeField =
+                  <ObjectDescribeField> {};
+                for (let z = 0; z < sobjectDescribe.fields.length; z++) {
+                  if (
+                    subscriptions[x].filters[y].field.toLowerCase() ==
+                      sobjectDescribe.fields[z].name
+                  ) {
+                    fieldDescribe = sobjectDescribe.fields[z];
+                    break;
+                  }
+                }
+
+                let value = "";
+                let field = "";
+                if (!fieldDescribe) {
+                  console.log(
+                    `Field: ${
+                      subscriptions[x].filters[y].field
+                    } is missing from the ObjectDescribe metadata`,
+                  );
+                  throw new Error("The field could not be found!");
+                }
+
+                if (
+                  fieldDescribe.type == Schema.types.object ||
+                  fieldDescribe.type == Schema.types.string
+                ) {
+                  value = `'${subscriptions[x].filters[y].value}'`;
+                } else {
+                  value = subscriptions[x].filters[y].value;
+                }
+
+                if (fieldDescribe.type == Schema.types.object) {
+                  field = `${subscriptions[x].filters[y].field}.Name`;
+                } else {
+                  field = subscriptions[x].filters[y].field;
+                }
+
                 // TODO this also assumes an AND between criteria
-                soql += `${subscriptions[x].filters[y].field} ${
+                soql += `${field} ${
                   subscriptions[x].filters[y].comparison
-                } ${subscriptions[x].filters[y].value} AND `;
+                } ${value} AND `;
               }
               soql = `${soql.substring(0, soql.length - 5)})`;
             }
@@ -415,7 +467,7 @@ export class Salesforce {
       }
 
       // Update the last polled date in our settings
-      settings.last_polled = lastPolled;
+      settings.last_polled = polled.getTime();
       await Storage.setSettings(token, settings);
     }
   };

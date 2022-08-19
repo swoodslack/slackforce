@@ -69,6 +69,10 @@ export class Slack {
       workflow: "#/workflows/poll_workflow",
       schedule: {
         start_time: dateSoon.toISOString(),
+        frequency: {
+          type: "daily",
+          repeats_every: 1,
+        },
       },
       inputs: {
         channel_id: { value: channel_id },
